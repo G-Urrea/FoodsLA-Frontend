@@ -1,0 +1,11 @@
+.labels{
+    display: flex;
+    font-size: 10px;
+    justify-content: space-between;
+    width: 100%
+}
+
+.overlay{
+    background-color: black;
+    color: white
+}

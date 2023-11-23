@@ -1,23 +1,45 @@
-import logo from './logo.svg';
+import React from 'react';
 import './App.css';
+import DefaultMap from './defaultMap';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+import Navbar from './components/navbar.js';
+import About from './pages/about';
+import Downloads from './pages/downloads';
+
+const Stats = React.lazy(()=> import('./pages/stats'));
+const DensityMap = React.lazy(()=> import('./components/map'));
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="App" style={{background:'#191827', color:'whitesmoke'}}>
+          <Router>
+            <Navbar />
+            <Routes>
+              <Route  path='/' exact element={
+                <React.Suspense fallback={<DefaultMap/>}>
+                  <DensityMap/>
+                </React.Suspense>
+              }></Route>
+                 <Route path='/stats' element = {
+                  <React.Suspense>
+                    <Stats/>
+                  </React.Suspense>
+                }></Route>
+               <Route path='/downloads' element = {
+                <React.Suspense>
+                  <Downloads/>
+                </React.Suspense>
+              }></Route>
+              <Route path='/about'element={
+                <React.Suspense>
+                  <About/>
+                </React.Suspense>
+              }/>
+            </Routes>
+          </Router>
+      
+      
     </div>
   );
 }

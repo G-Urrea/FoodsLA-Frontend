@@ -1,0 +1,45 @@
+.heading {
+    margin: 0;
+    padding: 0px;
+    background-color: 
+  black;
+    color: 
+  white;
+    text-align: center;
+  }
+  
+  .heading > h1 {
+    padding: 20px;
+    margin: 0;
+  }
+
+  .NavMenu {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background-color:black;
+    color: white;
+    height: 10vh;
+    /* Second Nav */
+    /* margin-right: 24px; */
+    /* Third Nav */
+    /* width: 100vw;
+    white-space: nowrap; */
+  
+  .NavLogo {
+    justify-content: flex-start;
+    font-weight: bold;
+    color: gray;
+  }
+  .NavSections {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .NavElement {
+    padding-right: 10%;
+    color:white;
+    text-decoration: none;
+  }
+}
