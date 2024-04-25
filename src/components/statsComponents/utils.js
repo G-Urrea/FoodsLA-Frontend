@@ -22,6 +22,32 @@ export function assignToLabel(values, labels){
     return val_label;
   }
 
+  export function computeMedian(dict_of_arrays){
+        /*
+      Computa la mediana del arreglo correspondiente a cada label.
+      dict_of_arrays: Diccionario con arreglos
+      */
+      let labels = [];
+      let median = [];
+    
+      for (var label in dict_of_arrays) {
+        if (dict_of_arrays.hasOwnProperty(label)) {
+            var valores = dict_of_arrays[label];
+            valores.sort();
+            const middleIndex = Math.floor(valores.length / 2);
+
+            if (valores.length % 2 === 0) {
+               median.push((valores[middleIndex - 1] + valores[middleIndex]) / 2);
+            } else {
+                median.push(valores[middleIndex]);
+              }
+            labels.push(label);
+          }
+      }
+      
+      return [labels, median];
+
+  }
   export function computeMean(dict_of_arrays){
     /*
     Computa el promedio del arreglo correspondiente a cada label.
@@ -69,7 +95,6 @@ export function assignToLabel(values, labels){
         SSR += (y_true[i]- y_pred[i])*(y_true[i]- y_pred[i]);
         SST += (y_true[i] - y_mean)*(y_true[i] - y_mean);
     }
-    console.log(SSR/SST);
   
     return 1-SSR/SST;
   }

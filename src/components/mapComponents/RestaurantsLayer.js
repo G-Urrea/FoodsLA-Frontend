@@ -29,12 +29,12 @@ export const RestaurantsLayer = ({
                 }
                 return [0, 0, 0];
               }, 
-              getFilterValue: feature => feature.properties[color_feature],
+              getFilterValue: feature => [feature.properties[color_feature], feature.properties['is_chain']],
               filterRange: filters,
-              extensions: [new DataFilterExtension({filterSize: 1})],
+              extensions: [new DataFilterExtension({filterSize: 2})],
               getLineWidth: 2,
               lineWidthUnits: 'pixels',
-              getPointRadius: 4,
+              getPointRadius: 3,
               pointRadiusUnits: 'pixels',
               pickable: true,
               autoHighlight: true,

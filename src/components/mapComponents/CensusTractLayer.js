@@ -1,6 +1,29 @@
 import {DataFilterExtension} from '@deck.gl/extensions';
 import {GeoJsonLayer} from '@deck.gl/layers';
 
+export const AreaLevelLayer = ({
+  data, color_feature, quintilFunction, colorScaler,
+  clickedZone, clickedZoneSetter,
+  get_detail_function, selectedMap, geo_type, filters}) => {
+    let area_data = {
+      type:'FeatureCollection',
+      features: data.features.filter((feature) => (feature.properties.geo_type===geo_type))
+    };
+
+    const quintil_area = quintilFunction(area_data.features.map(feature => feature.properties[color_feature]));
+    const color_scale = colorScaler(quintil_area);
+
+    return CensusTractLayer({
+      data: area_data, color_feature:color_feature,
+      quintiles:quintil_area, color_scale: color_scale,
+      clickedZone: clickedZone, clickedZoneSetter: clickedZoneSetter,
+      get_detail_function:get_detail_function,
+      selectedMap:selectedMap, filters: filters
+    }
+    );
+
+  };
+
 export const CensusTractLayer = ({
         data, color_feature, quintiles, color_scale,
         clickedZone, clickedZoneSetter,
@@ -12,7 +35,7 @@ export const CensusTractLayer = ({
     return new GeoJsonLayer({
       id: 'ct',
       data: data,
-      opacity: 0.8,
+      opacity: 0.15,
       stroked: true,
       filled: true,
       getFillColor: feature => 

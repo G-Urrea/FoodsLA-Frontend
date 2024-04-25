@@ -1,107 +1,154 @@
-import React, {useState, useEffect} from 'react';
-import { makeScatter, makeBar, makeBox } from '../components/statsComponents/makePlots';
-import { StatsPlot } from '../components/statsComponents/StatsPlot';
-import Plot from 'react-plotly.js';
+import React, {useEffect, useState} from 'react';
+import { NewStatsPlot } from '../components/statsComponents/StatsPlot';
+import { processData } from '../components/mapComponents/DataFetching';
 
-export default function Stats(){
-    const [seleccion, setSeleccion] = useState('scatter');
-    const [isLoading, setLoading] = useState(true);
-    const [numData, setNumData] = useState(null);
-    const [catData, setCatData] = useState(null);
 
-    
+// <option value='ct'>Census Tracts</option>
+function AreaDropdown({areaLevel, setter}){
     const handleChange = (event) => {
-    
         let selection = event.target.value;
-        setSeleccion(selection);
+        setter(selection)
     };
+    return (
+        <div>
+            <select value={areaLevel} onChange={handleChange}>
+            <option value='ct'>Census Tracts</option>
+            <option value='place'> Places</option>
+        </select>
+      </div>)
+}
+function IndicatorsDropdown({indicators, areaLevel, setter}){
+    // Categorías que no se utilizan para correlacionar
+    const categories_exception = ['Nutritional Score', 'Nutrition Density Distribution', 'Disability']
+    // Crear diccionario y lista de categorias para correlacionar
+    const categories = {};
+    const categories_list = [];
+    const indicators_dict = {};
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-              const [response1, response2] = await Promise.all([
-                fetch(`${process.env.REACT_APP_API_URL}/numind/`),
-                fetch(`${process.env.REACT_APP_API_URL}/catind/`),
-              ]);
-              // Realiza las solicitudes en paralelo
-        
-              const data1 = await response1.json();
-              const data2 = await response2.json();
-              // Parsea las respuestas de las solicitudes a objetos JavaScript
-        
-              setNumData(data1);
-              setCatData(data2);
-              setLoading(false);
-              // Almacena los resultados en el estado
-            } catch (error) {
-              console.error('Error:', error);
+    for (let i =0; i<indicators.length; i++){
+        let indicator = indicators[i];
+        let category = indicator.category;
+        let indicator_id = `${indicator.indicator} (${indicator.data_value_type})`
+        if (!categories_exception.includes(category)){
+            indicators_dict[indicator_id] = indicator;
+            if (category in categories){
+                categories[category].push(indicator_id);
             }
-          };
-        
-          fetchData();
-   
-      }, []);
-
-    const titles = {
-        'scatter': 'FEND Distribution (Census tract level)',
-        'box': 'FEND Distribution By Categorical Feature',
-        'bar': 'Mean FEND Distribution by Categorical Feature'
+            else{
+                categories_list.push(category);
+                categories[category] = [indicator_id];
+            }
+        }
     }
 
-    if (isLoading){
-        return (
-            <div style={{ height:'100vh'}}>
-                <h1>Select a chart type</h1>
-                <select value={seleccion} onChange={handleChange}>
-                    <option value="scatter">Scatterplot</option>
-                    <option value="box">Boxplot</option>
-                    <option value="bar">Barplot</option>
-                    
-                </select>
-                <div >
-                    <h2>{titles[seleccion]}</h2>
-                    <Plot layout = {{
-                        title:'Loading...',
-                        width: 1024,
-                        height: 576
-                    }}/>
+    const get_set_ind = async(url, setter) => {
+        try {
+            setter(null);
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log(data);
+            const processed = processData({data:data, geo_type:areaLevel})
+            setter(processed);
+    
+          }catch (error) {
+              console.error('Error:', error);
+            }
+        }
+      
 
-                </div>
+    const handleChange = (event) => {
+        let selection = indicators_dict[event.target.value];
+        
+        let urls = {
+            'Numerical': `${process.env.REACT_APP_API_URL}/numind`,
+            'Categorical': `${process.env.REACT_APP_API_URL}/catind`
+        };
+        let final_url=`${urls[selection.type]}/?indicator_id=${selection.id}`;
+        console.log(final_url);
+        get_set_ind(final_url, setter);
+    };
+
+    return (
+        <select onChange={handleChange}>
+        {categories_list.map((category, index) => (
+         <optgroup label={category}>
+            {categories[category].map((indicator, index) =>(
+                <option key={indicator} value={indicator}>
+                {indicator}
+                </option>
+            ))}           
+          </optgroup>
+        ))}
+      </select>
+    );
+}
+
+export default function Stats({mainData}){
+    const [correlateData, setCorrelateData] = useState(null);
+    const [indicators, setIndicators] = useState(null)
+    const [areaLevel, setAreaLevel] = useState('ct');
+
+    useEffect(()=>{
+        const fetchIndicators= async() =>{
+            setIndicators(null);
+            setCorrelateData(null);
+            try {
+              const response = await fetch(`${process.env.REACT_APP_API_URL}/indicators/?available&geo_type=${areaLevel}`);
+              const data = await response.json();
+              setIndicators(data);
+      
+            }catch (error) {
+                console.error('Error:', error);
+              }
+          }
+          fetchIndicators();
+    }, [areaLevel])
+
+    useEffect(()=>{
+          const fetchDefaultCorrelate = async() =>{
+            try {
+             const categories_exception = ['Nutritional Score', 'Nutrition Density Distribution', 'Disability']
+              const valid_indicators = indicators.filter( (ind) => (!categories_exception.includes(ind)))
+              const response = await fetch(`${process.env.REACT_APP_API_URL}/numind/?indicator_id=${valid_indicators[1].id}&format=json&geo_type=${areaLevel}`);
+              const data = await response.json();
+              setCorrelateData(processData({data:data, geo_type:areaLevel}));
+      
+            }catch (error) {
+                console.error('Error:', error);
+              }
+          }
+          if (indicators!==null){
+            fetchDefaultCorrelate();
+        }
+    }, [indicators, areaLevel])
+
+
+    const available = !((indicators===null) || (mainData===null))
+    if (!available){
+        return (
+            <div style={{ height:'100%'}}>
+                <h1>Correlation Between Food Environmnent Nutrition Density and Health, Demographic Variables in <br/>Los Angeles County</h1>
+                    <h2>Area Level</h2>
+                    <p>Loading...</p>
+                    <p style ={{fontSize:'1.1em'}}> Select a variable to correlate</p>
+                    <p>Loading...</p>
+                    <NewStatsPlot main={mainData} second={correlateData}/>
             </div>
             );
 
     }
-    console.log(isLoading);
-    console.log('Rendering ...');
-
-    const scatter_data = makeScatter({data: numData[0], main_feature: "rrr"}); // <DropScatter data = {numData[0]}  main_feature={"rrr"}>
-    const bar_data = makeBar({data:catData[0], main_feature:numData[0]['rrr']}); // <DropBarplot  main_feature = {numData[0]['rrr']} indicators_data={catData[0]}/>
-    const box_data = makeBox({data: catData[0], main_feature: numData[0]['rrr']}); //<DropBoxplot2 main_feature_data={numData[0]['rrr']} indicators_data={catData[0]}/>
-
+    let main_processed = processData({data:mainData, geo_type:areaLevel});
     return (
         <div >
-            <h1>Select a chart type</h1>
-            <select value={seleccion} onChange={handleChange}>
-                <option value="scatter">Scatterplot</option>
-                <option value="box">Boxplot</option>
-                <option value="bar">Barplot</option>
-                
-            </select>
-            
-            <div >
-                <div>
-                    <h2>{titles[seleccion]}</h2>
-                    {seleccion === 'scatter' &&
-                    <StatsPlot traces = {scatter_data[0]} layouts = {scatter_data[1]} indicators={scatter_data[2]}/>              
-                    }
-                    {seleccion==='box' &&
-                        <StatsPlot traces={box_data[0]} layouts={box_data[1]} indicators={box_data[2]}/>
-                    }
+            <h1>Correlation Between Food Environmnent Nutrition Density<br/> and Health, Demographic Variables in <br/>Los Angeles County</h1>
+            <h2>Area Level</h2>
+                    <AreaDropdown areaLevel ={areaLevel} setter={setAreaLevel}/>
+                <p style ={{fontSize:'1.1em'}}> Select a variable to correlate</p>
 
-                    {seleccion==='bar' &&
-                        <StatsPlot traces={bar_data[0]} layouts={bar_data[1]} indicators={bar_data[2]} />
-                    }
-            
+                    <IndicatorsDropdown indicators={indicators} areaLevel={areaLevel} setter={setCorrelateData}/>
+            <div style={{ height:'100%'}}>
+                <div style={{marginTop:'2%'}}>
+                    <NewStatsPlot main={main_processed} second={correlateData}/>
                 </div>
             </div>       
         </div>
