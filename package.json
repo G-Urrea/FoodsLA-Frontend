@@ -4,10 +4,12 @@
   "private": true,
   "dependencies": {
     "@deck.gl/react": "^8.9.32",
+    "@loaders.gl/csv": "^4.0.4",
     "@loaders.gl/json": "^4.0.4",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "babel-preset-react": "^6.24.1",
     "d3": "^7.8.5",
     "deck.gl": "^8.9.32",
     "loaders.gl": "^0.3.5",
@@ -23,8 +25,10 @@
     "react-scripts": "5.0.1",
     "react-wordcloud": "^1.2.7",
     "serve": "^14.2.1",
+    "stopword": "^2.0.8",
     "styled-components": "^6.1.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "words-n-numbers": "^9.1.2"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -49,5 +53,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@types/stopword": "^2.0.3"
   }
 }
