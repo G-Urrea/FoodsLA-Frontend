@@ -1,3 +1,7 @@
+/*
+Functions for serializing data from backend into valid GeoJSON.
+ */
+
 function serializeApiGeojson(geojson, fields, geometry_field){
   return ({
     type:'FeatureCollection',
@@ -10,6 +14,7 @@ function serializeApiGeojson(geojson, fields, geometry_field){
     )
   });
 }
+
 export function serializeRestaurants(geojson){
   const fields = ['facility_name', 'establishment_id', 'rrr_max', 'rnd', 'rrr_min', 'rrr_std', "name",
   "chain"];
@@ -26,6 +31,8 @@ export function serializeTracts(geojson){
   return serializeApiGeojson(geojson, fields, 'geometry');
 }
 
+
+// Function for obtaining Menus 
 export async function get_ct_menus(urls, setter){
   try{
     const menu_jsons = await Promise.all(

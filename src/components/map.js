@@ -1,20 +1,21 @@
 import React, {useState, useEffect} from 'react';
-import * as d3 from 'd3'
+import * as d3 from 'd3';
 import Map from 'react-map-gl/maplibre';
 import DeckGL from '@deck.gl/react';
 import { quantile } from 'd3-array';
 import {scaleThreshold} from 'd3-scale';
 import { get_ct_menus } from './mapComponents/DataFetching';
 import Sidebar from './sidebar';
-import { AreaLevelLayer } from './mapComponents/CensusTractLayer';
-import { RestaurantsLayer } from './mapComponents/RestaurantsLayer';
+import { AreaLevelLayer, generateTractsFromData } from './mapComponents/CensusTractLayer';
+import { RestaurantsLayer, generateRestaurantsFromData } from './mapComponents/RestaurantsLayer';
 import { getTooltip } from './mapComponents/MapTooltip';
 import MapController from './mapComponents/mapController';
 import './map.css'
 export default function DensityMap({tractsData, restaurantsData, isloaded=true}) {
 
-  const MAP_STYLE = `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${process.env.REACT_APP_MAP_KEY}`;//BASEMAP.DARK_MATTER_NOLABELS;
+  const MAP_STYLE = `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${process.env.REACT_APP_MAP_KEY}`;
 
+  // Coordinates located at LA
   const INITIAL_VIEW_STATE = {
         latitude: 34.098907,
         longitude:  -118.327759,
@@ -34,10 +35,16 @@ export default function DensityMap({tractsData, restaurantsData, isloaded=true})
   const [loadingSide, setLoadingSide] = useState(false);
   
   const [selectedMap, setMap] = useState('ct');
+  // Features that are part of the distribution
   const main_feature = {
     'ct':'rnd',
     'restaurant':'rrr'
   }
+
+  // Features that give color in map
+  const restaurants_color_feature = "rnd";
+  const ct_color_feature = "fend";
+
   const [selectedData, setSelectedData] = useState(null);
   const [menuData, setMenu] = useState(null);
   const [chainFilters, setChainFilters] = useState([0, 1]);
@@ -57,7 +64,7 @@ export default function DensityMap({tractsData, restaurantsData, isloaded=true})
       setChainFilters(chain_mapping[chain_filter]);
   }
 
-  // Maneja cambio de nivel de area (ej: zona censal -> lugar)
+  // Handles changes of data at area level (eg: Places -> Counties)
   const handleArea = (e) =>{
     const selected_area = e.target.value;
     setArea(selected_area);
@@ -68,8 +75,7 @@ export default function DensityMap({tractsData, restaurantsData, isloaded=true})
     setFilterRange(sliderRanges[selectedMap]);
   }
 
-  const restaurants_color_feature = "rnd";
-  const ct_color_feature = "fend";
+
 
   const [minValue, set_minValue] = useState(0);
   const [maxValue, set_maxValue] = useState(2.3);
@@ -96,14 +102,6 @@ export default function DensityMap({tractsData, restaurantsData, isloaded=true})
     if (e.minValue!== minValue || e.maxValue !== maxValue)
       setFilters([e.minValue, e.maxValue]);
   };
-  
-  const quintiles = (value_array) => {return [
-    quantile(value_array, 0.2),
-    quantile(value_array, 0.4),
-    quantile(value_array, 0.6),
-    quantile(value_array, 0.8),
-    d3.max(value_array) // Quintil superior
-  ]};
   
   const colorScale = (quantile) => {
     return scaleThreshold().domain(quantile).range(colors.map(c => [c.r, c.g, c.b]))};
@@ -151,7 +149,7 @@ export default function DensityMap({tractsData, restaurantsData, isloaded=true})
 
   }, [filterRange]);
 
-  // Recolección de datos de menus, para wordcloud
+  // Menu data retrieval, for wordcloud
   useEffect(()=> {
     if (selectedData!==null){
       if (selectedMap==='ct') {
@@ -186,51 +184,34 @@ export default function DensityMap({tractsData, restaurantsData, isloaded=true})
 
   const layers = [];
 
+  const restaurants_info = generateRestaurantsFromData({
+    restaurantsData: restaurantsData,
+     colorScale:colorScale,
+    clickedZone:clickedZone, setClickedZone:setClickedZone,
+    get_detail_function:get_restaurant_data,
+    selectedMap:selectedMap,
+    filters: [filters, chainFilters]
+  } );
 
-  if (restaurantsData!==null){
-
-    let restaurant_values = restaurantsData.features.map(feature => feature.properties['rnd']);
-    distribution_ranges['ct'] = [d3.min(restaurant_values), d3.max(restaurant_values)];
-    sliderRanges['restaurant'] = [d3.min(restaurant_values), d3.max(restaurant_values)];
-
-    //Dejar un score unico por cada cadena de comida
-    const chain_score = {};
-    for (let ix = 0; ix<restaurantsData.features.length; ix++){
-      let chain_id = restaurantsData.features[ix].properties['establishment_id'];
-      let score = restaurantsData.features[ix].properties[restaurants_color_feature];
-      chain_score[chain_id] = score;
-    }
-    const restaurantUniqueScores = [];
-    for (var key in chain_score){
-      restaurantUniqueScores.push(chain_score[key]);
-    }
-    const pointQuintiles = quintiles(restaurantUniqueScores);
-    const pointColorScale = colorScale(pointQuintiles);
-    const pointLayer = RestaurantsLayer({
-      data: restaurantsData, color_feature: restaurants_color_feature,
-      quintiles: pointQuintiles, color_scale: pointColorScale,
-      clickedZone: clickedZone, clickedZoneSetter: setClickedZone,
-      get_detail_function: get_restaurant_data,
-      selectedMap: selectedMap, filters: [filters, chainFilters]
-    })
-    layers.push(pointLayer);
+  if (restaurants_info!==null){
+    distribution_ranges['ct'] = restaurants_info['distribution_range'];
+    sliderRanges['restaurant'] = restaurants_info['distribution_range'];
+    layers.push(restaurants_info['layer']);
   }
   else{
     layers.push(null);
   }
 
-  if (tractsData !== null){
-    let filtered = tractsData.features.filter((feature) => (feature.properties.geo_type===areaLevel));
-    let score_values = filtered.map(feature => feature.properties[ct_color_feature]);
-    sliderRanges['ct'] = [d3.min(score_values), d3.max(score_values)]
-   const ctLayer = AreaLevelLayer({
-      data: tractsData, color_feature:ct_color_feature,
-      quintilFunction:quintiles, colorScaler: colorScale,
-      clickedZone: clickedZone, clickedZoneSetter: setClickedZone,
-      get_detail_function:get_ct_data,
-      selectedMap:selectedMap, filters: filters, geo_type:areaLevel
-   })
-    layers.push(ctLayer);
+
+  const tracts_info = generateTractsFromData({
+    tractsData: tractsData, colorScale:colorScale, color_feature:ct_color_feature,
+    clickedZone:clickedZone, setClickedZone:setClickedZone,
+    get_detail_function:get_ct_data, selectedMap:selectedMap, filters: filters, areaLevel:areaLevel
+  })
+
+  if (tracts_info!==null){
+    sliderRanges['ct'] = tracts_info['distribution_ranges'];
+    layers.push(tracts_info['layer']);
   }
   else{
     layers.push(null);
