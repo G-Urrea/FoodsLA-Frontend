@@ -51,6 +51,7 @@ export default function MapController({minValue, maxValue, selectedMap, handleCh
                                 <option value="ct">Census Tracts</option>
                                 <option value ="place"> Places</option>
                                 <option value ="county">Counties</option>
+                                <option value = "neighborhood">Neighborhood</option>
                             </select>
                         </div>
                     </div>

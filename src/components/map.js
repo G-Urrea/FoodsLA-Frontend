@@ -155,7 +155,7 @@ export default function DensityMap({tractsData, restaurantsData, isloaded=true})
       if (selectedMap==='ct') {
           const establishment_ids = selectedData.map(row => row['establishment_id']);
           // Demasiados datos
-          if (establishment_ids.length>200){
+          if (establishment_ids.length>500){
             setMenu([]);
           }
           else{

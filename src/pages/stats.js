@@ -14,6 +14,7 @@ function AreaDropdown({areaLevel, setter}){
             <select value={areaLevel} onChange={handleChange}>
             <option value='ct'>Census Tracts</option>
             <option value='place'> Places</option>
+            <option value='neighborhood'>Neighborhood</option>
         </select>
       </div>)
 }

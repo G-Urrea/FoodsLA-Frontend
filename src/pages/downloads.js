@@ -93,8 +93,16 @@ export default function Downloads(){
             serializer: serializeTracts,
             name : 'places_fend'
         },
+        {   id:4,
+            title: 'Neighborhoods FEND',
+            url:`${process.env.REACT_APP_API_URL}/fend/?geo_type=neighborhood&format=csv`,
+            url_gjson:`${process.env.REACT_APP_API_URL}/fend/?gis&geo_type=neighborhood&format=json`,
+            serializer: serializeTracts,
+            name: 'neighborhood_fend'
+
+        },
         {
-            id:4,
+            id:5,
             title: 'Counties FEND',
             url: `${process.env.REACT_APP_API_URL}/fend/?geo_type=county&format=csv`,
             url_gjson : `${process.env.REACT_APP_API_URL}/fend/?gis&geo_type=county&format=json`,
